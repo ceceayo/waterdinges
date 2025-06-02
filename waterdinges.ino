@@ -27,7 +27,7 @@ void setup(void)
   EEPROM.begin(16);
   Serial.begin(9600);
 
-  EEPROM.get(0, mark);
+  EEPROM.get(4, mark);
 
   pinMode(5, INPUT_PULLUP);
 }
@@ -71,7 +71,7 @@ void onConnectionEstablished(void)
     doc["stat_t"] = state_topic;
     doc["unit_of_meas"] = "%";
     doc["dev_cla"] = "humidity";
-    doc["val_tpl"] = "{{ value_json.moisture | default(0) }}";
+    doc["val_tpl"] = "{{ value_json.mark | default(0) }}";
     doc["uniq_id"] = "plant_" + String(sensornumber) + "_mark";
     doc["frc_upd"] = true;
 
@@ -139,7 +139,7 @@ void connected_loop(void)
 void set_mark(void)
 {
   mark = analogRead(A0);
-  EEPROM.put(0, mark);
+  EEPROM.put(4, mark);
   boolean ok1 = EEPROM.commit();
   if (ok1) Serial.println("+");
   else Serial.println("-");
