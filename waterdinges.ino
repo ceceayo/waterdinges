@@ -1,11 +1,14 @@
+#include <arduino-timer.h>
 #include <EspMQTTClient.h>
 #include <ArduinoJson.h>
 #include <ESP_EEPROM.h>
+#include "data.h"
 
 #define sensornumber 1
 #define state_topic "jesse/1/state"
 #define discovery_topic_moist "homeassistant/sensor/plant_jesse_1_moisture/config"
 #define discovery_topic_mark "homeassistant/sensor/plant_jesse_1_mark/config"
+#define discovery_topic_alarm "homeassistant/sensor/plant_jesse_1_alarm/config"
 
 EspMQTTClient mqtt(
   "ICT_Lyceum",
@@ -15,6 +18,8 @@ EspMQTTClient mqtt(
   "cutekittens22",
   "Jessiewessie"
 );
+
+Timer<10> timer; 
 
 bool connected = false;
 
@@ -29,7 +34,7 @@ void setup(void)
 
   EEPROM.get(4, mark);
 
-  pinMode(5, INPUT_PULLUP);
+  pinMode(2, INPUT_PULLUP);
 }
 
 void loop(void)
@@ -45,7 +50,7 @@ void onConnectionEstablished(void)
   Serial.print("\nConnected\n\n");
   connected = true;
 
-  // Discovery payload for temperature
+  // Discovery payload for moisture
   {
     DynamicJsonDocument doc(512);
     char buffer[256];
@@ -62,7 +67,7 @@ void onConnectionEstablished(void)
     mqtt.publish(discovery_topic_moist, buffer, true);
   }
 
-  // Discovery payload for moisture
+  // Discovery payload for mark
   {
     DynamicJsonDocument doc(512);
     char buffer[256];
@@ -78,11 +83,32 @@ void onConnectionEstablished(void)
     serializeJson(doc, buffer);
     mqtt.publish(discovery_topic_mark, buffer, true);
   }
+
+  // Discovery payload for alarm
+  {
+    DynamicJsonDocument doc(512);
+    char buffer[256];
+
+    doc["name"] = "Plant " + String(sensornumber) + " Alarm";
+    doc["stat_t"] = state_topic;
+    doc["val_tpl"] = "{{value_json.alarm|default(\"off\")}}";
+    doc["uniq_id"] = "plant_" + String(sensornumber) + "_alarm";
+    doc["dev_cla"] = "binary_sensor";
+    
+    serializeJson(doc, buffer);
+    mqtt.publish(discovery_topic_alarm, buffer, true);
+  }
+
+  // Start timers
+  {
+    timer.every(200, publish_data_to_mqtt);
+    timer.every(75, check_button);
+  }
 }
 
 float get_moisture(void)
 {
-  int moisture = analogRead(A0);
+  int moisture = analogRead(15);
 
   return map(moisture, 0, 1024, 0, 100);
 }
@@ -92,9 +118,14 @@ float get_mark(void)
   return map(mark, 0, 1024, 0, 100);
 }
 
-void check_button(void)
+bool get_alarm(float mark, float moisture)
 {
-  if (digitalRead(5) == LOW)
+  return moisture < mark;
+}
+
+bool check_button(void*)
+{
+  if (digitalRead(2) == LOW)
   {
     if (wasButtonPressed){}
     else
@@ -105,23 +136,18 @@ void check_button(void)
     }
   }
   else wasButtonPressed = false;
+  return true;
 }
 
-void wait(void)
-{
-  for (int i = 0; i != 50; i++)
-  {
-    delay(10);
-    check_button();
-  }
-}
 
-void connected_loop(void)
+
+
+bool publish_data_to_mqtt(void*)
 {
   // Example values — replace these with actual sensor readings
   int mark_p = get_mark();
   int moisture_p = get_moisture();
-
+  bool alarm = get_alarm(mark_p, moisture_p);
 
 
   DynamicJsonDocument doc(256);
@@ -129,16 +155,23 @@ void connected_loop(void)
 
   doc["moisture"] = moisture_p;
   doc["mark"] = mark_p;
+  doc["alarm"] = alarm? "on" : "off";
 
   size_t n = serializeJson(doc, buffer);
   mqtt.publish(state_topic, buffer, n);
 
-  wait();
+  return true;
 }
+
+void connected_loop(void)
+{
+  timer.tick();
+}
+
 
 void set_mark(void)
 {
-  mark = analogRead(A0);
+  mark = analogRead(15);
   EEPROM.put(4, mark);
   boolean ok1 = EEPROM.commit();
   if (ok1) Serial.println("+");
