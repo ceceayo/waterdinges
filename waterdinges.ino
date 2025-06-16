@@ -1,6 +1,9 @@
+#include <WiFi.h>
+
 #include <arduino-timer.h>
 #include <EspMQTTClient.h>
 #include <ArduinoJson.h>
+
 //#include <ESP_EEPROM.h>
 #include "data.h"
 
@@ -109,7 +112,7 @@ void onConnectionEstablished(void)
 
 float get_moisture(void)
 {
-  int moisture = analogRead(15);
+  int moisture = analogRead(PIN_READ);
 
   return map(moisture, 0, 1024, 0, 100);
 }
@@ -172,14 +175,14 @@ void connected_loop(void)
 
 void set_mark(void)
 {
-  mark = analogRead(15);
+  mark = analogRead(PIN_READ);
   //EEPROM.put(4, mark);
   //boolean ok1 = EEPROM.commit();
   //if (ok1) Serial.println("+");
   //else Serial.println("-");
 }
 
-bool run_alarm(void)
+bool run_alarm(void*)
 {
   
   return true;
