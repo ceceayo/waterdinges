@@ -1,7 +1,7 @@
 #include <arduino-timer.h>
 #include <EspMQTTClient.h>
 #include <ArduinoJson.h>
-#include <ESP_EEPROM.h>
+//#include <ESP_EEPROM.h>
 #include "data.h"
 
 #define sensornumber 1
@@ -29,10 +29,10 @@ bool wasButtonPressed = false;
 
 void setup(void)
 {
-  EEPROM.begin(16);
+  //EEPROM.begin(16);
   Serial.begin(9600);
 
-  EEPROM.get(4, mark);
+  //EEPROM.get(4, mark);
 
   pinMode(2, INPUT_PULLUP);
 }
@@ -103,6 +103,7 @@ void onConnectionEstablished(void)
   {
     timer.every(200, publish_data_to_mqtt);
     timer.every(75, check_button);
+    timer.every(4000, run_alarm);
   }
 }
 
@@ -172,8 +173,14 @@ void connected_loop(void)
 void set_mark(void)
 {
   mark = analogRead(15);
-  EEPROM.put(4, mark);
-  boolean ok1 = EEPROM.commit();
-  if (ok1) Serial.println("+");
-  else Serial.println("-");
+  //EEPROM.put(4, mark);
+  //boolean ok1 = EEPROM.commit();
+  //if (ok1) Serial.println("+");
+  //else Serial.println("-");
+}
+
+bool run_alarm(void)
+{
+  
+  return true;
 }
