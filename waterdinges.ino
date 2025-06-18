@@ -1,3 +1,5 @@
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 #include <arduino-timer.h>
 #include <EspMQTTClient.h>
 #include <ArduinoJson.h>
@@ -21,6 +23,8 @@ EspMQTTClient mqtt(
 
 Timer<10> timer; 
 
+LiquidCrystal_I2C lcd(0x27,16,2);
+
 bool connected = false;
 
 int mark;
@@ -29,12 +33,17 @@ bool wasButtonPressed = false;
 
 void setup(void)
 {
+  Wire.begin(4, 5);
   EEPROM.begin(16);
   Serial.begin(9600);
 
   EEPROM.get(4, mark);
 
-  pinMode(2, INPUT_PULLUP);
+  pinMode(0, INPUT);
+  pinMode(A0, INPUT);
+
+  lcd.init();
+  lcd.print("Hello, world!");
 }
 
 void loop(void)
@@ -108,7 +117,7 @@ void onConnectionEstablished(void)
 
 float get_moisture(void)
 {
-  int moisture = analogRead(15);
+  int moisture = analogRead(A0);
 
   return map(moisture, 0, 1024, 0, 100);
 }
@@ -125,7 +134,7 @@ bool get_alarm(float mark, float moisture)
 
 bool check_button(void*)
 {
-  if (digitalRead(2) == LOW)
+  if (digitalRead(0) == HIGH)
   {
     if (wasButtonPressed){}
     else
@@ -171,7 +180,7 @@ void connected_loop(void)
 
 void set_mark(void)
 {
-  mark = analogRead(15);
+  mark = analogRead(A0);
   EEPROM.put(4, mark);
   boolean ok1 = EEPROM.commit();
   if (ok1) Serial.println("+");
