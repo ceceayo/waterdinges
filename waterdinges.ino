@@ -37,8 +37,7 @@ void setup(void)
 
   //EEPROM.get(4, mark);
 
-  pinMode(PIN_BUTTON, INPUT_PULLUP);
-  pinMode(PIN_READ, INPUT);
+  pinMode(2, INPUT_PULLUP);
 }
 
 void loop(void)
@@ -130,7 +129,7 @@ bool get_alarm(float mark, float moisture)
 
 bool check_button(void*)
 {
-  if (digitalRead(PIN_BUTTON) == LOW)
+  if (digitalRead(2) == LOW)
   {
     if (wasButtonPressed){}
     else
@@ -185,6 +184,6 @@ void set_mark(void)
 
 bool run_alarm(void*)
 {
-  Serial.println(analogRead(PIN_READ));
+  
   return true;
 }
